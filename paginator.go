@@ -1,8 +1,9 @@
 package paginator
 
 import (
-	"github.com/jinzhu/gorm"
 	"strconv"
+
+	"github.com/jinzhu/gorm"
 )
 
 type Paginator struct {
@@ -19,7 +20,7 @@ type Data struct {
 	TotalPages   int64       `json:"total_pages"`
 }
 
-func (p *Paginator) Paginate(dataSource interface{}, condition ...interface{}) *Data {
+func (p *Paginator) Paginate(dataSource interface{}, query interface{}, args ...interface{}) *Data {
 	db := p.DB
 
 	if len(p.OrderBy) > 0 {
@@ -31,18 +32,18 @@ func (p *Paginator) Paginate(dataSource interface{}, condition ...interface{}) *
 	done := make(chan bool, 1)
 	var output Data
 	var count int
-  var offset int64
+	var offset int64
 
-	go countRecords(db, dataSource, done, &count)
+	go countRecords(db, dataSource, done, &count, query, args...)
 
-  if p.Page == "1" {
-    offset = 0
-  } else {
-    tmpPerPage, _ := strconv.ParseInt(p.PerPage, 10, 32)
-    offset = tmpPerPage
-  }
+	if p.Page == "1" {
+		offset = 0
+	} else {
+		tmpPerPage, _ := strconv.ParseInt(p.PerPage, 10, 32)
+		offset = tmpPerPage
+	}
 
-	db.Limit(p.PerPage).Offset(offset).Find(dataSource, condition...)
+	db.Limit(p.PerPage).Offset(offset).Where(query, args...).Find(dataSource)
 	<-done
 
 	output.TotalRecords = count
@@ -53,8 +54,8 @@ func (p *Paginator) Paginate(dataSource interface{}, condition ...interface{}) *
 	return &output
 }
 
-func countRecords(db *gorm.DB, countDataSource interface{}, done chan bool, count *int) {
-	db.Model(countDataSource).Count(count)
+func countRecords(db *gorm.DB, countDataSource interface{}, done chan bool, count *int, query interface{}, args ...interface{}) {
+	db.Model(countDataSource).Where(query, args...).Count(count)
 	done <- true
 }
 
