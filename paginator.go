@@ -19,7 +19,7 @@ type Data struct {
 	TotalPages   int64       `json:"total_pages"`
 }
 
-func (p *Paginator) Paginate(dataSource interface{}) *Data {
+func (p *Paginator) Paginate(dataSource interface{}, condition ...interface{}) *Data {
 	db := p.DB
 
 	if len(p.OrderBy) > 0 {
@@ -42,7 +42,7 @@ func (p *Paginator) Paginate(dataSource interface{}) *Data {
     offset = tmpPerPage
   }
 
-	db.Limit(p.PerPage).Offset(offset).Find(dataSource)
+	db.Limit(p.PerPage).Offset(offset).Find(dataSource, condition...)
 	<-done
 
 	output.TotalRecords = count
